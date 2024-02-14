@@ -1,2 +1,4 @@
-# MCModChecker
-マインクラフトのModをチェックできます。
+# MCModCheckerとは
+マインクラフトMODサーバーで役に立つ
+
+簡易MODチェッカーツールMCMC(MinecraftModChecker)です！
