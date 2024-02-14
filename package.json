@@ -1,0 +1,24 @@
+{
+  "name": "mcmodchecker",
+  "version": "1.0.0",
+  "description": "This is MCMC(MinecraftModChecker), a simple mod checker tool that is useful on minecraft mod servers!",
+  "main": "app.js",
+  "scripts": {
+    "start": "node ./src/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MizuYaYa/MCModChecker.git"
+  },
+  "author": "MizuYaYa(https://github.com/MizuYaYa)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MizuYaYa/MCModChecker/issues"
+  },
+  "homepage": "https://github.com/MizuYaYa/MCModChecker#readme",
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "picocolors": "^1.0.0"
+  },
+  "type": "module"
+}
