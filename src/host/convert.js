@@ -45,7 +45,7 @@ async function convert_to_json_wizard() {
   //^Cされた時の挙動
   if (isCancel(table_path)) {
     cancel("キャンセルされました");
-    return process.exit(0);
+    return 0;
   }
 
   //ここから、受け取ったCSVファイルをJsonに変換
