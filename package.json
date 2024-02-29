@@ -2,6 +2,7 @@
   "name": "mcmodchecker",
   "version": "1.0.0",
   "description": "This is MCMC(MinecraftModChecker), a simple mod checker tool that is useful on minecraft mod servers!",
+  "private": true,
   "main": "app.js",
   "scripts": {
     "start": "node ./src/app.js"
