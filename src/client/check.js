@@ -132,7 +132,7 @@ async function parseMcmc(path) {
 
 function compareMods(new_mods, mods, file_names, mod_set) {
   new_mods.forEach(new_mod => {
-    const old_mod = mods.find(mod => mod.name === new_mod.name);
+    const old_mod = mods?.find(mod => mod.name === new_mod.name);
     const is_exists_mod_file = file_names.includes(new_mod.fileName);
     if (old_mod && old_mod.version !== new_mod.version && !is_exists_mod_file) {
       //modが更新でバージョンが異なる時の処理
@@ -174,7 +174,7 @@ function compareMods(new_mods, mods, file_names, mod_set) {
     }
   });
   const new_mod_names = new_mods.map(new_mod => new_mod.name);
-  mods.forEach(mod => {
+  mods?.forEach(mod => {
     const is_exists_mod = new_mod_names.includes(mod.name);
     if (!is_exists_mod) {
       mod_set.pushChangeMod({
