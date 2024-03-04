@@ -32,7 +32,7 @@ async function checkModsWizard() {
 
   //チェックしたいmodsフォルダのパスを質問
   const check_mods_path = await text({
-    message: "チェックしたいmodsフォルダの場所を入力してください",
+    message: `チェックしたいmodsフォルダの場所を入力してください${pc.gray("Ctrl+Cで終了")}`,
     placeholder: "例(C:\\Users\\[ユーザー名]\\AppData\\Roaming\\.minecraft\\mods)",
     validate(value) {
       if (!/.+mods$/.test(value) || value === undefined) return "modsフォルダの場所を入力してください";
@@ -46,7 +46,7 @@ async function checkModsWizard() {
 
   //ホスト側から提供される新しいjsonのパスを質問
   const new_mcmc_json_path = await text({
-    message: "ホストから提供されたjsonファイルの場所を入力してください",
+    message: `ホストから提供されたjsonファイルの場所を入力してください${pc.gray("Ctrl+Cで終了")}`,
     placeholder: "例(C:\\Users\\[ユーザー名]\\Downloads\\mods.json)",
     validate(value) {
       if (!/^(https|http):\/\/.+|.+\.json$/.test(value) || value === undefined) return "jsonファイルの場所を入力してください";
@@ -193,9 +193,10 @@ function compareMods(new_mods, mods, file_names, mod_set) {
 function showChangeMods(mod_set) {
   const changeMods = mod_set.changeMods;
   const unexpectedMods = mod_set.unexpectedMods;
+  console.log(`${pc.gray("┌")}  変更があるMOD一覧`);
+  console.log(pc.gray("│"));
   for (let i = 0; i < changeMods.length; i++) {
     const mod = changeMods[i];
-    if (i === 0) console.log(pc.gray("│"));
     if (mod.changeStatus === "new") {
       console.log(
         `${pc.green("◆")}  ${mod.name} ${pc.gray(`(new) => (${mod.newFileName})`)}\n${pc.blue("│    new")} ${pc.red("=>")} ${pc.green(`v${mod.newVersion}`)}\n${pc.blue("│")}    ${mod.description}\n${pc.blue("│")}    ${pc.gray(`${mod.source}`)}`
