@@ -86,31 +86,25 @@ async function checkMods(local_mods_path, host_mcmc_path) {
   const [host_mcmc, file_names, local_mcmc] = await (async () => {
     let file_names, host_mcmc, local_mcmc;
     try {
+      const parseMcmc = async path => JSON.parse(await fs.readFile(path, "utf8"));
       file_names = fs.readdir(local_mods_path);
       host_mcmc = parseMcmc(host_mcmc_path);
       local_mcmc = parseMcmc(path.resolve(local_mods_path, "_mcmc.json")).catch(err => {
         if (err.code === "ENOENT") return undefined;
         throw err;
-      }); 
+      });
     } catch (err) {
       throw err;
     }
     return [await host_mcmc, await file_names, await local_mcmc];
   })();
+
   const mod_set = new ModSet();
-
   const host_mods = Object.keys(host_mcmc).map((key) => host_mcmc[key]).flat();
-
-  const host_mcmc_version = parseInt(host_mcmc.mcmc.version);
-  if (typeof host_mcmc_version === "number" && Number.isNaN(host_mcmc_version)) {
-    throw new TypeError(`${host_mcmc_version} is not a integer`);
-  }
+  const host_mcmc_version = validateParseInt(host_mcmc.mcmc.version);
 
   if (file_names.includes("_mcmc.json")) {
-    const local_mcmc_version = parseInt(local_mcmc.mcmc.version);
-    if (typeof local_mcmc_version === "number" && Number.isNaN(local_mcmc_version)) {
-      throw new TypeError(`${local_mcmc_version} is not a integer`);
-    }
+    const local_mcmc_version = validateParseInt(local_mcmc.mcmc.version);
 
     if (local_mcmc_version < host_mcmc_version) {
       //ホストから提供されたmcmc.jsonが新しい時の処理
@@ -133,12 +127,10 @@ async function checkMods(local_mods_path, host_mcmc_path) {
   throw new Error("An unexpected error has occurred.");
 }
 
-async function parseMcmc(path) {
-  try {
-    return JSON.parse(await fs.readFile(path, "utf8"));
-  } catch (err) {
-    throw err;
-  }
+function validateParseInt(str) {
+  const int = parseInt(str);
+  if (Number.isInteger(int)) return int;
+  throw new TypeError(`${int} is not a integer`);
 }
 
 function compareMods(new_mods, old_mods, file_names, mod_set) {
