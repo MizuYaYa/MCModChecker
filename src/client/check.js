@@ -87,8 +87,9 @@ async function checkMods(local_mods_path, host_mcmc_path) {
     let file_names, host_mcmc, local_mcmc;
     try {
       const parseMcmc = async path => JSON.parse(await fs.readFile(path, "utf8"));
+      const isUrl = /^(https|http):\/\/.+/.test(host_mcmc_path);
       file_names = fs.readdir(local_mods_path);
-      host_mcmc = parseMcmc(host_mcmc_path);
+      host_mcmc = isUrl ? (await fetch(host_mcmc_path)).json() : parseMcmc(host_mcmc_path);
       local_mcmc = parseMcmc(path.resolve(local_mods_path, "_mcmc.json")).catch(err => {
         if (err.code === "ENOENT") return undefined;
         throw err;
