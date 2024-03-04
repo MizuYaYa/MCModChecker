@@ -83,8 +83,20 @@ async function checkModsWizard() {
 }
 
 async function checkMods(local_mods_path, host_mcmc_path) {
-  const file_names = await fs.readdir(local_mods_path).catch(err => {throw err});
-  const host_mcmc = await parseMcmc(host_mcmc_path).catch(err => {throw err});
+  const [host_mcmc, file_names, local_mcmc] = await (async () => {
+    let file_names, host_mcmc, local_mcmc;
+    try {
+      file_names = fs.readdir(local_mods_path);
+      host_mcmc = parseMcmc(host_mcmc_path);
+      local_mcmc = parseMcmc(path.resolve(local_mods_path, "_mcmc.json")).catch(err => {
+        if (err.code === "ENOENT") return undefined;
+        throw err;
+      }); 
+    } catch (err) {
+      throw err;
+    }
+    return [await host_mcmc, await file_names, await local_mcmc];
+  })();
   const mod_set = new ModSet();
 
   const host_mods = Object.keys(host_mcmc).map((key) => host_mcmc[key]).flat();
@@ -95,7 +107,6 @@ async function checkMods(local_mods_path, host_mcmc_path) {
   }
 
   if (file_names.includes("_mcmc.json")) {
-    const local_mcmc = await parseMcmc(path.resolve(local_mods_path, "_mcmc.json")).catch(err => {throw err});
     const local_mcmc_version = parseInt(local_mcmc.mcmc.version);
     if (typeof local_mcmc_version === "number" && Number.isNaN(local_mcmc_version)) {
       throw new TypeError(`${local_mcmc_version} is not a integer`);
