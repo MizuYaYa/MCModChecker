@@ -9,11 +9,32 @@ class ModSet {
     this.noChangeMods = [];
     this.unexpectedMods = [];
   }
-  pushChangeMod(mod_obj) {
-    this.changeMods.push(mod_obj);
+  createObj(new_mod, old_mod, changeStatus) {
+    const obj = {
+      name: new_mod.name,
+      changeStatus: changeStatus,
+      description: new_mod.description,
+      source: new_mod.source,
+    }
+    if (changeStatus === "update" || changeStatus === "new") {
+      obj.newVersion = new_mod.version;
+      obj.newFileName = new_mod.fileName;
+    }
+    if (changeStatus === "update" || changeStatus === "delete") {
+      obj.oldVersion = old_mod.version;
+      obj.oldFileName = old_mod.fileName;
+    }
+    if (changeStatus === "same") {
+      obj.version = new_mod.version;
+      obj.fileName = new_mod.fileName;
+    }
+    return obj;
   }
-  pushNoChangeMod(mod_obj) {
-    this.noChangeMods.push(mod_obj);
+  pushChangeMod(new_mod, old_mod, changeStatus) {
+    this.changeMods.push(this.createObj(new_mod, old_mod, changeStatus));
+  }
+  pushNoChangeMod(new_mod, old_mod, changeStatus) {
+    this.noChangeMods.push(this.createObj(new_mod, old_mod, changeStatus));
   }
   pushUnexpectedMod(mod_obj) {
     this.unexpectedMods.push(mod_obj);
@@ -36,7 +57,7 @@ async function checkModsWizard() {
     placeholder: "例(C:\\Users\\[ユーザー名]\\AppData\\Roaming\\.minecraft\\mods)",
     validate(value) {
       if (!/.+mods$/.test(value) || value === undefined) return "modsフォルダの場所を入力してください";
-    }
+    },
   });
 
   if (isCancel(local_mods_path)) {
@@ -50,7 +71,7 @@ async function checkModsWizard() {
     placeholder: "例(C:\\Users\\[ユーザー名]\\Downloads\\mods.json)",
     validate(value) {
       if (!/^(https|http):\/\/.+|.+\.json$/.test(value) || value === undefined) return "jsonファイルの場所を入力してください";
-    }
+    },
   });
 
   if (isCancel(host_mcmc_path)) {
@@ -101,7 +122,7 @@ async function checkMods(local_mods_path, host_mcmc_path) {
   })();
 
   const mod_set = new ModSet();
-  const host_mods = Object.keys(host_mcmc).map((key) => host_mcmc[key]).flat();
+  const host_mods = Object.keys(host_mcmc).map(key => host_mcmc[key]).flat();
   const host_mcmc_version = validateParseInt(host_mcmc.mcmc.version);
 
   if (file_names.includes("_mcmc.json")) {
@@ -110,7 +131,7 @@ async function checkMods(local_mods_path, host_mcmc_path) {
     if (local_mcmc_version < host_mcmc_version) {
       //ホストから提供されたmcmc.jsonが新しい時の処理
       //古いmcmcオブジェクトをフラット化
-      const local_mods = Object.keys(local_mcmc).map((key) => local_mcmc[key]).flat();
+      const local_mods = Object.keys(local_mcmc).map(key => local_mcmc[key]).flat();
       return compareMods(host_mods, local_mods, file_names, mod_set);
     } else if (local_mcmc_version >= host_mcmc_version) {
       //mcmcのバージョンが同じなので変える必要はない
@@ -138,38 +159,19 @@ function compareMods(new_mods, old_mods, file_names, mod_set) {
   new_mods.forEach(new_mod => {
     const old_mod = old_mods?.find(mod => mod.name === new_mod.name);
     const is_exists_mod_file = file_names.includes(new_mod.fileName);
+
     if (old_mod && old_mod.version !== new_mod.version && !is_exists_mod_file) {
       //modが更新でバージョンが異なる時の処理
-      mod_set.pushChangeMod({
-        name: new_mod.name,
-        changeStatus: "update",
-        newVersion: new_mod.version,
-        oldVersion: old_mod.version,
-        newFileName: new_mod.fileName,
-        oldFileName: old_mod.fileName,
-        description: new_mod.description,
-        source: new_mod.source,
-      });
-    } else if (old_mod && old_mod.version === new_mod.version || is_exists_mod_file) {
+      mod_set.pushChangeMod(new_mod, old_mod, "update");
+
+    } else if ((old_mod && old_mod.version === new_mod.version) || is_exists_mod_file) {
       //modのバージョンが同じ時の処理
-      mod_set.pushNoChangeMod({
-        name: new_mod.name,
-        changeStatus: "same",
-        version: new_mod.version,
-        description: new_mod.description,
-        source: new_mod.source,
-        fileName: new_mod.fileName,
-      });
+      mod_set.pushNoChangeMod(new_mod, undefined, "same");
+
     } else if (!old_mod && !is_exists_mod_file) {
       //modが追加されている時の処理
-      mod_set.pushChangeMod({
-        name: new_mod.name,
-        changeStatus: "new",
-        newVersion: new_mod.version,
-        newFileName: new_mod.fileName,
-        description: new_mod.description,
-        source: new_mod.source,
-      });
+      mod_set.pushChangeMod(new_mod, undefined, "new");
+
     } else {
       mod_set.pushUnexpectedMod({
         old_mod: old_mod,
@@ -177,18 +179,12 @@ function compareMods(new_mods, old_mods, file_names, mod_set) {
       });
     }
   });
+  if (!old_mods) return mod_set;
   const new_mod_names = new_mods.map(new_mod => new_mod.name);
   old_mods?.forEach(mod => {
     const is_exists_mod = new_mod_names.includes(mod.name);
     if (!is_exists_mod) {
-      mod_set.pushChangeMod({
-        name: mod.name,
-        changeStatus: "delete",
-        oldVersion: mod.version,
-        oldFileName: mod.fileName,
-        description: mod.description,
-        source: mod.source
-      });
+      mod_set.pushChangeMod(mod, mod, "delete");
     }
   });
   return mod_set;
