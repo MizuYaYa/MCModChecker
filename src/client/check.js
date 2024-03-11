@@ -211,7 +211,7 @@ function showChangeMods(mod_set) {
       );
     }
   }
-  if (!unexpectedMods.length === 0) {
+  if (unexpectedMods.length > 0) {
     console.log(`想定していないデータが入ったオブジェクトが${unexpectedMods.length}個あります。`);
     console.log("=====ここから=====");
     console.log(unexpectedMods);
