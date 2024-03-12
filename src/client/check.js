@@ -82,7 +82,13 @@ async function checkModsWizard() {
   const s = spinner();
   s.start("変更を確認中");
 
-  const mod_set = await checkMods(local_mods_path, host_mcmc_path).catch(err => {
+  const mcmc_files = await readMcmcFiles(local_mods_path, host_mcmc_path).catch(err => {
+    s.stop("変更を確認できません");
+    cancel("ファイルの読み取りに失敗しました。");
+    throw err;
+  });
+
+  const mod_set = await checkMods(mcmc_files).catch(err => {
     s.stop("変更を確認できません");
     cancel("エラーが発生しました");
     throw err;
@@ -103,24 +109,25 @@ async function checkModsWizard() {
   return mod_set;
 }
 
-async function checkMods(local_mods_path, host_mcmc_path) {
-  const [host_mcmc, file_names, local_mcmc] = await (async () => {
-    let file_names, host_mcmc, local_mcmc;
-    try {
-      const parseMcmc = async path => JSON.parse(await fs.readFile(path, "utf8"));
-      const isUrl = /^(https|http):\/\/.+/.test(host_mcmc_path);
-      file_names = fs.readdir(local_mods_path);
-      host_mcmc = isUrl ? (await fetch(host_mcmc_path)).json() : parseMcmc(host_mcmc_path);
-      local_mcmc = parseMcmc(path.resolve(local_mods_path, "_mcmc.json")).catch(err => {
-        if (err.code === "ENOENT") return undefined;
-        throw err;
-      });
-    } catch (err) {
+async function readMcmcFiles(local_mods_path, host_mcmc_path) {
+  let file_names, host_mcmc, local_mcmc;
+  try {
+    const parseMcmc = async path => JSON.parse(await fs.readFile(path, "utf8"));
+    const isUrl     = /^(https|http):\/\/.+/.test(host_mcmc_path);
+    file_names = fs.readdir(local_mods_path);
+    host_mcmc  = isUrl ? (await fetch(host_mcmc_path)).json() : parseMcmc(host_mcmc_path);
+    local_mcmc = parseMcmc(path.resolve(local_mods_path, "_mcmc.json")).catch(err => {
+      if (err.code === "ENOENT") return undefined;
       throw err;
-    }
-    return [await host_mcmc, await file_names, await local_mcmc];
-  })();
+    });
+  } catch (err) {
+    throw err;
+  }
 
+  return [await local_mcmc, await host_mcmc, await file_names];
+}
+
+async function checkMods([local_mcmc, host_mcmc, file_names]) {
   const mod_set = new ModSet();
   const host_mods = Object.keys(host_mcmc).map(key => host_mcmc[key]).flat();
   const host_mcmc_version = validateParseInt(host_mcmc.mcmc.version);
