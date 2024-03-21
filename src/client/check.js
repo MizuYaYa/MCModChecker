@@ -54,7 +54,7 @@ async function checkModsWizard() {
 
   //チェックしたいmodsフォルダのパスを質問
   const local_mods_path = await text({
-    message: `チェックしたいmodsフォルダの場所を入力してください${pc.gray("Ctrl+Cで終了")}`,
+    message: `チェックしたいmodsフォルダの場所を入力してください ${pc.gray("Ctrl+Cで終了")}`,
     placeholder: "例(C:\\Users\\[ユーザー名]\\AppData\\Roaming\\.minecraft\\mods)",
     validate(value) {
       if (!/.+mods$/.test(value) || value === undefined) return "modsフォルダの場所を入力してください";
@@ -68,7 +68,7 @@ async function checkModsWizard() {
 
   //ホスト側から提供される新しいjsonのパスを質問
   const host_mcmc_path = await text({
-    message: `ホストから提供されたjsonファイルの場所を入力してください${pc.gray("Ctrl+Cで終了")}`,
+    message: `ホストから提供されたjsonファイルの場所を入力してください ${pc.gray("Ctrl+Cで終了")}`,
     placeholder: "例(C:\\Users\\[ユーザー名]\\Downloads\\mods.json)",
     validate(value) {
       if (!/^(https|http):\/\/.+|.+\.json$/.test(value) || value === undefined) return "jsonファイルの場所を入力してください";
@@ -81,13 +81,15 @@ async function checkModsWizard() {
   }
 
   const s = spinner();
-  s.start("変更を確認中");
+  s.start("ファイルを読み取り中");
 
   const mcmc_files = await readMcmcFiles(local_mods_path, host_mcmc_path).catch(err => {
     s.stop("変更を確認できません");
     cancel("ファイルの読み取りに失敗しました。");
     throw err;
   });
+
+  s.message("変更を確認中");
 
   const mod_set = await checkMods(mcmc_files).catch(err => {
     s.stop("変更を確認できません");
@@ -286,7 +288,7 @@ function showChangeMods(mod_set) {
       );
     } else if (mod.changeStatus === "update") {
       console.log(
-        `${pc.green("◆")}  ${mod.name} ${pc.gray(`(${mod.oldFileName}) => (${mod.newFileName})`)}\n${pc.green("│")}    ${pc.red(`${mod.oldVersion} =>`)} ${pc.green(`v${mod.newVersion}`)}\n${pc.green("│")}    ${mod.description}\n${pc.green("│")}    ${pc.gray(`${mod.source}`)}`
+        `${pc.green("◆")}  ${mod.name} ${pc.gray(`(${mod.oldFileName}) => (${mod.newFileName})`)}\n${pc.green("│")}    ${pc.red(`v${mod.oldVersion} =>`)} ${pc.green(`v${mod.newVersion}`)}\n${pc.green("│")}    ${mod.description}\n${pc.green("│")}    ${pc.gray(`${mod.source}`)}`
       );
     }
   }
