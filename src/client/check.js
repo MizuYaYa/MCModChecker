@@ -1,4 +1,4 @@
-import { cancel, intro, isCancel, outro, spinner, text } from "@clack/prompts";
+import { cancel, intro, isCancel, outro, select, spinner, text, confirm } from "@clack/prompts";
 import pc from "picocolors";
 import * as fs from "node:fs/promises";
 import path from "node:path";
@@ -9,10 +9,11 @@ class ModSet {
     this.noChangeMods = [];
     this.unexpectedMods = [];
   }
-  createObj(new_mod, old_mod, changeStatus) {
+  createObj(new_mod, old_mod, changeStatus, isApplyChange) {
     const obj = {
       name: new_mod.name,
       changeStatus: changeStatus,
+      isApplyChange: isApplyChange,
       description: new_mod.description,
       source: new_mod.source,
     }
@@ -30,11 +31,11 @@ class ModSet {
     }
     return obj;
   }
-  pushChangeMod(new_mod, old_mod, changeStatus) {
-    this.changeMods.push(this.createObj(new_mod, old_mod, changeStatus));
+  pushChangeMod(new_mod, old_mod, changeStatus, isApplyChange = false) {
+    this.changeMods.push(this.createObj(new_mod, old_mod, changeStatus, isApplyChange));
   }
-  pushNoChangeMod(new_mod, old_mod, changeStatus) {
-    this.noChangeMods.push(this.createObj(new_mod, old_mod, changeStatus));
+  pushNoChangeMod(new_mod, old_mod, changeStatus, isApplyChange = false) {
+    this.noChangeMods.push(this.createObj(new_mod, old_mod, changeStatus, isApplyChange));
   }
   pushUnexpectedMod(mod_obj) {
     this.unexpectedMods.push(mod_obj);
@@ -105,8 +106,76 @@ async function checkModsWizard() {
     return 1;
   }
 
+  showChangeMods(mod_set);
+
+  while (true) {
+    const select_prompt = await select({
+      message: "選択してください",
+      options: [
+        { value: "showMods", label: "modsの変更を再確認して表示" },
+        { value: "writeExit", label: "変更を保存して終了" },
+      ],
+    });
+
+    if (isCancel(select_prompt)) {
+      const confirm_exit = await confirm({
+        message: "保存しないで終了しますか？",
+      });
+      if (confirm_exit) {
+        cancel("終了しました");
+        return 0;
+      }
+      continue;
+    }
+
+    if (select_prompt === "writeExit") {
+      // ここでhost_mcmcファイルの書き込みを行う
+
+      break;
+    } else if (select_prompt === "showMods") {
+      const current_file_names = await fs.readdir(local_mods_path);
+      updateApplyChangeFile(mod_set, current_file_names);
+      showChangeMods(mod_set);
+    }
+  }
+
   outro("完了しました");
   return mod_set;
+}
+
+//modSetクラスのchangeModsをforで回して、current_file_namesをFileNameでincludesする
+function updateApplyChangeFile(mod_set, current_file_names) {
+  for (let i = 0; i < mod_set.changeMods.length; i++) {
+    const change_mod = mod_set.changeMods[i];
+    //new_file_existsがTrueだったらmodsに新しいmodが入ってる
+    const new_file_exists = current_file_names.includes(change_mod.newFileName);
+    //old_file_existsがTrueだったらまだ古いmodが削除されていない
+    const old_file_exists = current_file_names.includes(change_mod.oldFileName);
+    const isApplyChangedFile = (() => {
+      switch (change_mod.changeStatus) {
+        case "update":
+          //modsに新しいmodがあって古いmodが削除されてた場合True
+          return new_file_exists && !old_file_exists;
+        case "new":
+          //modsに新しいmodがある場合True
+          return new_file_exists;
+        case "delete":
+          //modsに古いmodが削除されていたらTrue
+          //existsがTrueだったらdeleteする予定のファイルが削除されていないということなのでstatusは未適用のfalse
+          return !old_file_exists;
+
+        default:
+          console.log(`new_file_exists: ${new_file_exists}, old_file_exists: ${old_file_exists}\n`, change_mod);
+          return false;
+      }
+    })();
+    //isApplyChangedがFalse(if True)だったらファイル変更がmodsに適用されていないことになる
+    //isApplyChangedがTrue(if False)だったらファイル変更がmodsに適用されていることになる
+    //ここから処理したいのは、ファイルの変更がmodsに適用されていた場合isApplyChangeをTrueにする
+    if (isApplyChangedFile) {
+      change_mod.isApplyChange = true;
+    }
+  }
 }
 
 async function readMcmcFiles(local_mods_path, host_mcmc_path) {
@@ -167,17 +236,17 @@ function compareMods(new_mods, old_mods, file_names, mod_set) {
     const old_mod = old_mods?.find(mod => mod.name === new_mod.name);
     const is_exists_mod_file = file_names.includes(new_mod.fileName);
 
-    if (old_mod && old_mod.version !== new_mod.version && !is_exists_mod_file) {
+    if (old_mod && old_mod.version !== new_mod.version) {
       //modが更新でバージョンが異なる時の処理
-      mod_set.pushChangeMod(new_mod, old_mod, "update");
+      mod_set.pushChangeMod(new_mod, old_mod, "update", is_exists_mod_file);
 
-    } else if ((old_mod && old_mod.version === new_mod.version) || is_exists_mod_file) {
+    } else if (old_mod && old_mod.version === new_mod.version) {
       //modのバージョンが同じ時の処理
-      mod_set.pushNoChangeMod(new_mod, undefined, "same");
+      mod_set.pushNoChangeMod(new_mod, undefined, "same", is_exists_mod_file);
 
-    } else if (!old_mod && !is_exists_mod_file) {
+    } else if (!old_mod) {
       //modが追加されている時の処理
-      mod_set.pushChangeMod(new_mod, undefined, "new");
+      mod_set.pushChangeMod(new_mod, undefined, "new", is_exists_mod_file);
 
     } else {
       mod_set.pushUnexpectedMod({
@@ -191,7 +260,9 @@ function compareMods(new_mods, old_mods, file_names, mod_set) {
   old_mods?.forEach(mod => {
     const is_exists_mod = new_mod_names.includes(mod.name);
     if (!is_exists_mod) {
-      mod_set.pushChangeMod(mod, mod, "delete");
+      //modがhost_mcmcから削除されている時の処理
+      const mod_exists_in_mods = file_names.includes(mod.fileName);
+      mod_set.pushChangeMod(mod, mod, "delete", !mod_exists_in_mods);
     }
   });
   return mod_set;
@@ -204,6 +275,7 @@ function showChangeMods(mod_set) {
   console.log(pc.gray("│"));
   for (let i = 0; i < changeMods.length; i++) {
     const mod = changeMods[i];
+    if (mod.isApplyChange) continue;
     if (mod.changeStatus === "new") {
       console.log(
         `${pc.green("◆")}  ${mod.name} ${pc.gray(`(new) => (${mod.newFileName})`)}\n${pc.blue("│    new")} ${pc.red("=>")} ${pc.green(`v${mod.newVersion}`)}\n${pc.blue("│")}    ${mod.description}\n${pc.blue("│")}    ${pc.gray(`${mod.source}`)}`
@@ -226,4 +298,4 @@ function showChangeMods(mod_set) {
   }
 }
 
-export { checkModsWizard, checkMods, compareMods, showChangeMods, ModSet };
+export { checkModsWizard, checkMods, compareMods, showChangeMods, ModSet, readMcmcFiles, updateApplyChangeFile };
