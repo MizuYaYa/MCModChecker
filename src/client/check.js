@@ -16,7 +16,7 @@ class ModSet {
       isApplyChange: isApplyChange,
       description: new_mod.description,
       source: new_mod.source,
-    }
+    };
     if (changeStatus === "update" || changeStatus === "new") {
       obj.newVersion = new_mod.version;
       obj.newFileName = new_mod.fileName;
@@ -46,7 +46,7 @@ async function checkModsWizard() {
   //これやるとかっこいい
   console.log(`   __  __  ___ __  __  ___          ___ _  _ ___ ___ _  __
   |  \\/  |/ __|  \\/  |/ __|  ___   / __| || | __/ __| |/ /
-  | |\\/| | (__| |\\/| | (__  |___| | (__| __ | _| (__| ' < 
+  | |\\/| | (__| |\\/| | (__  |___| | (__| __ | _| (__| ' <
   |_|  |_|\\___|_|  |_|\\___|        \\___|_||_|___\\___|_|\\_\\
                                                           `);
 
@@ -101,7 +101,7 @@ async function checkModsWizard() {
     outro("終了しました。");
     console.log(`バージョンが同じ又は低いため、変更の必要はありません。\n v${mod_set.old_version} => v${mod_set.new_version}`);
     return 0;
-  }else if (mod_set.code === 1) {
+  } else if (mod_set.code === 1) {
     console.log(`想定外のエラーが発生しました。`);
     return 1;
   }
@@ -234,19 +234,19 @@ function validateParseInt(str) {
 function compareMods(new_mods, old_mods, file_names, mod_set) {
   new_mods.forEach(new_mod => {
     const old_mod = old_mods?.find(mod => mod.name === new_mod.name);
-    const is_exists_mod_file = file_names.includes(new_mod.fileName);
+    const mod_file_exists = file_names.includes(new_mod.fileName);
 
     if (old_mod && old_mod.version !== new_mod.version) {
       //modが更新でバージョンが異なる時の処理
-      mod_set.pushChangeMod(new_mod, old_mod, "update", is_exists_mod_file);
+      mod_set.pushChangeMod(new_mod, old_mod, "update", mod_file_exists);
 
     } else if (old_mod && old_mod.version === new_mod.version) {
       //modのバージョンが同じ時の処理
-      mod_set.pushNoChangeMod(new_mod, undefined, "same", is_exists_mod_file);
+      mod_set.pushNoChangeMod(new_mod, undefined, "same", mod_file_exists);
 
     } else if (!old_mod) {
       //modが追加されている時の処理
-      mod_set.pushChangeMod(new_mod, undefined, "new", is_exists_mod_file);
+      mod_set.pushChangeMod(new_mod, undefined, "new", mod_file_exists);
 
     } else {
       mod_set.pushUnexpectedMod({
@@ -258,8 +258,8 @@ function compareMods(new_mods, old_mods, file_names, mod_set) {
   if (!old_mods) return mod_set;
   const new_mod_names = new_mods.map(new_mod => new_mod.name);
   old_mods?.forEach(mod => {
-    const is_exists_mod = new_mod_names.includes(mod.name);
-    if (!is_exists_mod) {
+    const mod_name_exists = new_mod_names.includes(mod.name);
+    if (!mod_name_exists) {
       //modがhost_mcmcから削除されている時の処理
       const mod_exists_in_mods = file_names.includes(mod.fileName);
       mod_set.pushChangeMod(mod, mod, "delete", !mod_exists_in_mods);
