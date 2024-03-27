@@ -101,7 +101,7 @@ async function checkModsWizard() {
 
   if (mod_set.code === 0) {
     outro("終了しました。");
-    console.log(`バージョンが同じ又は低いため、変更の必要はありません。\n v${mod_set.old_version} => v${mod_set.new_version}`);
+    console.log(`バージョンが最新ではないため、変更の必要はありません。\n v${mod_set.old_version} => v${mod_set.new_version}`);
     return 0;
   } else if (mod_set.code === 1) {
     console.log(`想定外のエラーが発生しました。`);
@@ -206,13 +206,13 @@ async function checkMods([local_mcmc, host_mcmc, file_names]) {
   if (file_names.includes("_mcmc.json")) {
     const local_mcmc_version = validateParseInt(local_mcmc.mcmc.version);
 
-    if (local_mcmc_version < host_mcmc_version) {
-      //ホストから提供されたmcmc.jsonが新しい時の処理
+    if (local_mcmc_version <= host_mcmc_version) {
+      //ホストから提供されたmcmc.jsonが新しいまたは同じ時の処理
       //古いmcmcオブジェクトをフラット化
       const local_mods = Object.keys(local_mcmc).map(key => local_mcmc[key]).flat();
       return compareMods(host_mods, local_mods, file_names, mod_set);
-    } else if (local_mcmc_version >= host_mcmc_version) {
-      //mcmcのバージョンが同じなので変える必要はない
+    } else if (local_mcmc_version > host_mcmc_version) {
+      //mcmcのバージョンが古いので変える必要はない
       return {
         code: 0,
         old_version: local_mcmc_version,
