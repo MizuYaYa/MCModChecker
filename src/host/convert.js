@@ -3,7 +3,7 @@ import pc from "picocolors";
 import * as fs from "node:fs/promises";
 import { generate, parse, transform, stringify } from "csv/sync";
 import * as path from "node:path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 
 class McmcMods {
   constructor(mcmc, game, modLoader) {
@@ -49,25 +49,30 @@ async function convertToJsonWizard() {
 
   //ここから、受け取ったCSVファイルをJsonに変換
   const s = spinner();
-  s.start("CSVファイルをJSONに変換中");
+  s.start("ファイルを読み取り中");
 
   const csv_data = await fs.readFile(table_path);
+
+  s.message("CSVファイルをJSONに変換中");
 
   //csvのpathを渡してjsonを貰う
   const mods = await csvToJson(csv_data);
 
-  s.stop("変換完了");
+  s.message("ファイルを書き込み中");
 
-  await fs.writeFile(`${export_path}/mods.json`, JSON.stringify(mods, null, 2)).catch(async err => {
+  const export_mcmc_path = path.resolve(export_path, `${mods.mcmc.name}-${mods.mcmc.version}-mcmc.json`);
+  await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2)).catch(async err => {
     if (err.code === "ENOENT") {
       await fs.mkdir(export_path);
-      await fs.writeFile(`${export_path}/mods.json`, JSON.stringify(mods, null, 2));
+      await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2));
     } else {
       throw err;
     }
   });
 
-  outro(`完了しました\n ${export_path}\\mods.json`);
+  s.stop("ファイル書き込み完了")
+
+  outro(`完了しました\n   ${pc.gray(pathToFileURL(export_mcmc_path))}`);
 }
 
 //csvをjsonに変換する関数
