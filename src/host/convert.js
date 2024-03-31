@@ -61,14 +61,32 @@ async function convertToJsonWizard() {
   s.message("ファイルを書き込み中");
 
   const export_mcmc_path = path.resolve(export_path, `${mods.mcmc.name}-${mods.mcmc.version}-mcmc.json`);
-  await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2)).catch(async err => {
-    if (err.code === "ENOENT") {
-      await fs.mkdir(export_path);
-      await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2));
+  const file = await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2), { flag: "wx" }).catch(async err => {
+    if (err.code === "ENOENT" || err.code === "EEXIST") {
+      return err;
     } else {
+      s.stop("ファイル書き込みに失敗");
+      cancel("エラーが発生しました");
       throw err;
     }
   });
+
+  if (file?.code === "ENOENT") {
+    await fs.mkdir(export_path);
+    await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2), { flag: "wx" });
+  } else if (file?.code === "EEXIST") {
+    s.stop("ファイル書き込み中止");
+    const confirm_over_write = await confirm({
+      message: `既にファイルがあります。上書きしますか？${pc.gray(`| ${pathToFileURL(export_mcmc_path)}`)}`,
+    });
+    if (confirm_over_write) {
+      s.start("ファイルを上書き中");
+      await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2));
+    } else {
+      outro("終了しました。");
+      return 0;
+    }
+  }
 
   s.stop("ファイル書き込み完了")
 
