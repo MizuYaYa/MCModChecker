@@ -56,7 +56,7 @@ async function convertToJsonWizard() {
   s.message("CSVファイルをJSONに変換中");
 
   //csvのpathを渡してjsonを貰う
-  const mods = await csvToJson(csv_data);
+  const mods = await csvToObj(csv_data);
 
   s.message("ファイルを書き込み中");
 
@@ -76,7 +76,7 @@ async function convertToJsonWizard() {
 }
 
 //csvをjsonに変換する関数
-async function csvToJson(data) {
+async function csvToObj(data) {
   const records = parse(data, { columns: true });
 
   //mods管理データのインスタンスを作成
@@ -90,4 +90,4 @@ async function csvToJson(data) {
   return mods;
 }
 
-export { convertToJsonWizard, csvToJson, McmcMods };
+export { convertToJsonWizard, csvToObj, McmcMods };
