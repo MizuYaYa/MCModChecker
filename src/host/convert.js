@@ -61,7 +61,8 @@ async function convertToJsonWizard() {
   s.message("ファイルを書き込み中");
 
   const export_mcmc_path = path.resolve(export_path, `${mods.mcmc.name}-${mods.mcmc.version}-mcmc.json`);
-  const file = await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2), { flag: "wx" }).catch(async err => {
+  const json = JSON.stringify(mods, null, 2);
+  const file = await fs.writeFile(export_mcmc_path, json, { flag: "wx" }).catch(async err => {
     if (err.code === "ENOENT" || err.code === "EEXIST") {
       return err;
     } else {
@@ -73,7 +74,7 @@ async function convertToJsonWizard() {
 
   if (file?.code === "ENOENT") {
     await fs.mkdir(export_path);
-    await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2), { flag: "wx" });
+    await fs.writeFile(export_mcmc_path, json, { flag: "wx" });
   } else if (file?.code === "EEXIST") {
     s.stop("ファイル書き込み中止");
     const confirm_over_write = await confirm({
@@ -81,14 +82,14 @@ async function convertToJsonWizard() {
     });
     if (confirm_over_write) {
       s.start("ファイルを上書き中");
-      await fs.writeFile(export_mcmc_path, JSON.stringify(mods, null, 2));
+      await fs.writeFile(export_mcmc_path, json);
     } else {
       outro("終了しました。");
       return 0;
     }
   }
 
-  s.stop("ファイル書き込み完了")
+  s.stop("ファイル書き込み完了");
 
   outro(`完了しました\n   ${pc.gray(pathToFileURL(export_mcmc_path))}`);
 }
