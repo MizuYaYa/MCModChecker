@@ -5,11 +5,10 @@ import path from "node:path";
 
 class ModSet {
   constructor() {
-    this.changeMods = [];
-    this.noChangeMods = [];
+    this.mods = [];
     this.unexpectedMods = [];
   }
-  createObj(new_mod, old_mod, changeStatus, isApplyChange) {
+  pushMod(new_mod, old_mod, changeStatus, isApplyChange = false) {
     const obj = {
       name: new_mod.name,
       changeStatus: changeStatus,
@@ -17,25 +16,15 @@ class ModSet {
       description: new_mod.description,
       source: new_mod.source,
     };
-    if (changeStatus === "update" || changeStatus === "new") {
+    if (["update", "new", "same"].includes(changeStatus)) {
       obj.newVersion = new_mod.version;
       obj.newFileName = new_mod.fileName;
     }
-    if (changeStatus === "update" || changeStatus === "delete") {
+    if (["update", "delete"].includes(changeStatus)) {
       obj.oldVersion = old_mod.version;
       obj.oldFileName = old_mod.fileName;
     }
-    if (changeStatus === "same") {
-      obj.version = new_mod.version;
-      obj.fileName = new_mod.fileName;
-    }
-    return obj;
-  }
-  pushChangeMod(new_mod, old_mod, changeStatus, isApplyChange = false) {
-    this.changeMods.push(this.createObj(new_mod, old_mod, changeStatus, isApplyChange));
-  }
-  pushNoChangeMod(new_mod, old_mod, changeStatus, isApplyChange = false) {
-    this.noChangeMods.push(this.createObj(new_mod, old_mod, changeStatus, isApplyChange));
+    this.mods.push(obj);
   }
   pushUnexpectedMod(mod_obj) {
     this.unexpectedMods.push(mod_obj);
@@ -147,14 +136,14 @@ async function checkModsWizard() {
 
 //modSetクラスのchangeModsをforで回して、current_file_namesをFileNameでincludesする
 function updateApplyChangeFile(mod_set, current_file_names) {
-  for (let i = 0; i < mod_set.changeMods.length; i++) {
-    const change_mod = mod_set.changeMods[i];
+  for (let i = 0; i < mod_set.mods.length; i++) {
+    const mod = mod_set.mods[i];
     //new_file_existsがTrueだったらmodsに新しいmodが入ってる
-    const new_file_exists = current_file_names.includes(change_mod.newFileName);
+    const new_file_exists = current_file_names.includes(mod.newFileName);
     //old_file_existsがTrueだったらまだ古いmodが削除されていない
-    const old_file_exists = current_file_names.includes(change_mod.oldFileName);
+    const old_file_exists = current_file_names.includes(mod.oldFileName);
     const isApplyChangedFile = (() => {
-      switch (change_mod.changeStatus) {
+      switch (mod.changeStatus) {
         case "update":
           //modsに新しいmodがあって古いmodが削除されてた場合True
           return new_file_exists && !old_file_exists;
@@ -165,9 +154,12 @@ function updateApplyChangeFile(mod_set, current_file_names) {
           //modsに古いmodが削除されていたらTrue
           //existsがTrueだったらdeleteする予定のファイルが削除されていないということなのでstatusは未適用のfalse
           return !old_file_exists;
+        case "same":
+          //modsに不足しているmodがない場合True
+          return new_file_exists;
 
         default:
-          console.log(`new_file_exists: ${new_file_exists}, old_file_exists: ${old_file_exists}\n`, change_mod);
+          console.log(`new_file_exists: ${new_file_exists}, old_file_exists: ${old_file_exists}\n`, mod);
           return false;
       }
     })();
@@ -175,7 +167,7 @@ function updateApplyChangeFile(mod_set, current_file_names) {
     //isApplyChangedがTrue(if False)だったらファイル変更がmodsに適用されていることになる
     //ここから処理したいのは、ファイルの変更がmodsに適用されていた場合isApplyChangeをTrueにする
     if (isApplyChangedFile) {
-      change_mod.isApplyChange = true;
+      mod.isApplyChange = true;
     }
   }
 }
@@ -240,15 +232,15 @@ function compareMods(new_mods, old_mods, file_names, mod_set) {
 
     if (old_mod && old_mod.version !== new_mod.version) {
       //modが更新でバージョンが異なる時の処理
-      mod_set.pushChangeMod(new_mod, old_mod, "update", mod_file_exists);
+      mod_set.pushMod(new_mod, old_mod, "update", mod_file_exists);
 
     } else if (old_mod && old_mod.version === new_mod.version) {
       //modのバージョンが同じ時の処理
-      mod_set.pushNoChangeMod(new_mod, undefined, "same", mod_file_exists);
+      mod_set.pushMod(new_mod, undefined, "same", mod_file_exists);
 
     } else if (!old_mod) {
       //modが追加されている時の処理
-      mod_set.pushChangeMod(new_mod, undefined, "new", mod_file_exists);
+      mod_set.pushMod(new_mod, undefined, "new", mod_file_exists);
 
     } else {
       mod_set.pushUnexpectedMod({
@@ -264,19 +256,19 @@ function compareMods(new_mods, old_mods, file_names, mod_set) {
     if (!mod_name_exists) {
       //modがhost_mcmcから削除されている時の処理
       const mod_exists_in_mods = file_names.includes(mod.fileName);
-      mod_set.pushChangeMod(mod, mod, "delete", !mod_exists_in_mods);
+      mod_set.pushMod(mod, mod, "delete", !mod_exists_in_mods);
     }
   });
   return mod_set;
 }
 
 function showChangeMods(mod_set) {
-  const changeMods = mod_set.changeMods;
+  const mods = mod_set.mods;
   const unexpectedMods = mod_set.unexpectedMods;
   console.log(`${pc.gray("┌")}  変更があるMOD一覧`);
   console.log(pc.gray("│"));
-  for (let i = 0; i < changeMods.length; i++) {
-    const mod = changeMods[i];
+  for (let i = 0; i < mods.length; i++) {
+    const mod = mods[i];
     if (mod.isApplyChange) continue;
     if (mod.changeStatus === "new") {
       console.log(
@@ -289,6 +281,10 @@ function showChangeMods(mod_set) {
     } else if (mod.changeStatus === "update") {
       console.log(
         `${pc.green("◆")}  ${mod.name} ${pc.gray(`(${mod.oldFileName}) => (${mod.newFileName})`)}\n${pc.green("│")}    ${pc.red(`v${mod.oldVersion} =>`)} ${pc.green(`v${mod.newVersion}`)}\n${pc.green("│")}    ${mod.description}\n${pc.green("│")}    ${pc.gray(`${mod.source}`)}`
+      );
+    } else if (mod.changeStatus === "same") {
+      console.log(
+        `${pc.green("◆")}  ${mod.name} ${pc.gray(`(add) => (${mod.newFileName})`)}\n${pc.blue("│    add")} ${pc.red("=>")} ${pc.green(`v${mod.newVersion}`)}\n${pc.blue("│")}    ${mod.description}\n${pc.blue("│")}    ${pc.gray(`${mod.source}`)}`
       );
     }
   }
