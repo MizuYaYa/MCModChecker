@@ -177,7 +177,7 @@ async function readMcmcFiles(local_mods_path, host_mcmc_path) {
   try {
     const parseMcmc = async path => JSON.parse(await fs.readFile(path, "utf8"));
     const isUrl     = /^(https|http):\/\/.+/.test(host_mcmc_path);
-    file_names = fs.readdir(local_mods_path);
+    file_names = fs.readdir(local_mods_path, { withFileTypes: true });
     host_mcmc  = isUrl ? (await fetch(host_mcmc_path)).json() : parseMcmc(host_mcmc_path);
     local_mcmc = parseMcmc(path.resolve(local_mods_path, "_mcmc.json")).catch(err => {
       if (err.code === "ENOENT") return undefined;
@@ -195,7 +195,7 @@ async function checkMods([local_mcmc, host_mcmc, file_names]) {
   const host_mods = Object.keys(host_mcmc).map(key => host_mcmc[key]).flat();
   const host_mcmc_version = validateParseInt(host_mcmc.mcmc.version);
 
-  if (file_names.includes("_mcmc.json")) {
+  if (file_names.some(file_name => file_name.name === "_mcmc.json")) {
     const local_mcmc_version = validateParseInt(local_mcmc.mcmc.version);
 
     if (local_mcmc_version <= host_mcmc_version) {
@@ -228,7 +228,7 @@ function validateParseInt(str) {
 function compareMods(new_mods, old_mods, file_names, mod_set) {
   new_mods.forEach(new_mod => {
     const old_mod = old_mods?.find(mod => mod.name === new_mod.name);
-    const mod_file_exists = file_names.includes(new_mod.fileName);
+    const mod_file_exists = file_names.some(file_name => file_name.name === new_mod.fileName);
 
     if (old_mod && old_mod.version !== new_mod.version) {
       //modが更新でバージョンが異なる時の処理
@@ -255,8 +255,22 @@ function compareMods(new_mods, old_mods, file_names, mod_set) {
     const mod_name_exists = new_mod_names.includes(mod.name);
     if (!mod_name_exists) {
       //modがhost_mcmcから削除されている時の処理
-      const mod_exists_in_mods = file_names.includes(mod.fileName);
+      const mod_exists_in_mods = file_names.some(file_name => file_name.name === mod.fileName);
       mod_set.pushMod(mod, mod, "delete", !mod_exists_in_mods);
+    }
+  });
+  file_names.forEach(file_info => {
+    const file_name_exists = old_mods.find(mod => mod.fileName === file_info.name);
+    const ignore = ["_mcmc.json"];
+    if (!file_name_exists && file_info.isFile() && !ignore.includes(file_info.name)) {
+      const mod = {
+        name: file_info.name,
+        description: "",
+        version: "",
+        fileName: file_info.name,
+        source: "",
+      };
+      mod_set.pushMod(mod, mod, "delete");
     }
   });
   return mod_set;
