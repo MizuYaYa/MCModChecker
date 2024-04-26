@@ -22,7 +22,7 @@ async function convertToJsonWizard() {
   const file_path = fileURLToPath(import.meta.url);
   const dir_path = path.dirname(file_path);
 
-  const export_path = path.resolve(dir_path, "../export");
+  const export_path = path.resolve(dir_path, "../../export");
 
   //これやるとかっこいい
   console.log(`   __  __  ___ __  __  ___          ___ ___ ___   _ _____ ___
