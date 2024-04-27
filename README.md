@@ -1,6 +1,6 @@
 # <img src="./docs/img/mcmc.png" alt="logo" width="30">MCModCheckerとは
 
-[English README](./docs/img/README-en.md)
+[English README](./docs/README-en.md)
 
 マインクラフトMODサーバーで役に立つ  
 簡易MODチェッカーツールMCMC(MinecraftModChecker)です！  

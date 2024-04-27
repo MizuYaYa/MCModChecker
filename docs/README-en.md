@@ -1,6 +1,6 @@
-# <img src="./mcmc.png" alt="logo" width="30">What is MCModChecker
+# <img src="./img/mcmc.png" alt="logo" width="30">What is MCModChecker
 
-[日本語 README](../../README.md)
+[日本語 README](../README.md)
 
 Useful for Minecraft Mod Servers!  
 MCMC (MinecraftModChecker) is a simple mod checker tool!  
