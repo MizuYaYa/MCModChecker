@@ -1,7 +1,7 @@
 import { intro, outro, confirm, select, multiselect, spinner, isCancel, cancel, text } from "@clack/prompts";
 import pc from "picocolors";
 import * as fs from "node:fs/promises";
-import { generate, parse, transform, stringify } from "csv/sync";
+import { parse } from "csv-parse/sync";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "url";
 
