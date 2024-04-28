@@ -90,7 +90,8 @@ if (opts.path) {
     showChangeMods(mod_set);
 
     const local_mcmc_path = path.resolve(opts.path[0], "_mcmc.json");
-    await fs.writeFile(local_mcmc_path, mcmc_files[1]);
+    const mcmc_json = JSON.stringify(mcmc_files[1], null, 2);
+    await fs.writeFile(local_mcmc_path, mcmc_json);
     console.log(local_mcmc_path, "ここで保存する");
   } else {
     console.log(JSON.stringify(mod_set, null, 2));

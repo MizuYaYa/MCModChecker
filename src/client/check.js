@@ -122,7 +122,8 @@ async function checkModsWizard() {
     if (select_prompt === "writeExit") {
       // ここでhost_mcmcファイルの書き込みを行う
       const local_mcmc_path = path.resolve(local_mods_path, "_mcmc.json");
-      await fs.writeFile(local_mcmc_path, mcmc_files[1]);
+      const mcmc_json = JSON.stringify(mcmc_files[1], null, 2);
+      await fs.writeFile(local_mcmc_path, mcmc_json);
 
       break;
     } else if (select_prompt === "showMods") {
